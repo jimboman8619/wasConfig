@@ -1,17 +1,8 @@
 import HTML
+import AdminConfig
+import AdminTask
 
-def writeParamsToHTML(objectId, scopeIds, listOfParameters, tableId):
-  global f
-  tArgs= []
-  for i in listOfParameters :
-    paramValue = AdminConfig.showAttribute(objectId,i)
-    tArgs.append(paramValue)
-  tArgs.append(scopeIds)
-  tableId.rows.append(tArgs)
-    
-    
 def writeQueuesByScope(scopeIds, qParams, tableId):
-  global f
   for s in scopeIds :
     try :
       queues = AdminTask.listWMQQueues(s).splitlines()
@@ -25,10 +16,9 @@ def writeQueuesByScope(scopeIds, qParams, tableId):
         tableId.rows.append(tArgs)
     except :
       print sys.exc_info()
-  
-
-HTMLFILE = 'WASreport.html'
-f = open(HTMLFILE, 'w')
+ 
+QUEUE_HTML_FILE = 'Queues.html'
+queuesFile = open(QUEUE_HTML_FILE, 'w')
             
 queueT = HTML.Table(header_row=['Name', 'JNDI name', 'MQ Queue manager', 'MQ Queue name', 'Scope'])
 queueParams = ["name", "jndiName", "baseQueueManagerName", "baseQueueName"]
@@ -37,18 +27,29 @@ cell = AdminConfig.getid('/Cell:/').splitlines()
 nodes = AdminConfig.getid('/Node:/').splitlines()
 servers = AdminConfig.getid('/Server:/').splitlines()
 
-'''writeQueuesByScope(cell, queueParams, queueT)
-writeQueuesByScope(nodes, queueParams, queueT)'''
 writeQueuesByScope(servers, queueParams, queueT)
 
-
 htmlcode = str(queueT)
-f.write(htmlcode)
-f.write('<p>')
-
+queuesFile.write(htmlcode)
+queuesFile.write('<p>')
 
 dbT = HTML.Table(header_row=['Name', 'JNDI name', 'Provider', 'JAAS Alias', 'Scope'])
 dbParams = ['name', 'jndiName', 'provider', 'authDataAlias']
+
+
+
+'''
+Создание страницы с jvm аргументами
+'''
+
+
+
+
+for s in servers :
+  servName = s.split('(')[0]
+  nodeName = s.split('/')[3]
+  args = '[-nodeName ' + nodeName + ' -serverName ' + servName + ']'
+  paramValue = AdminTask.showJVMProperties(args)
 
 '''
 datasourcesId = AdminConfig.list('DataSource').splitlines()
@@ -56,4 +57,11 @@ for i in datasourcesId :
     dsScope = i.split('(')[1].split('|')[0]
     writeParamsToHTML(i, dsScope, dbParams, dbT)
 '''
-f.close()
+queuesFile.close()
+
+INDEX_HTML_FILE = 'Index.html' 
+indexFile = open(INDEX_HTML_FILE, 'w')
+htmlcode = HTML.link('Queues', '.\Queues.html')
+indexFile.write(htmlcode)
+indexFile.write('<p>')
+indexFile.close()
